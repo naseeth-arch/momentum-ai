@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MomentumAI – Swing Trader Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #050810;
+    --surface: #0c1120;
+    --surface2: #111827;
+    --border: #1e2d45;
+    --accent: #00f5c4;
+    --accent2: #ff6b35;
+    --accent3: #7c6dfa;
+    --text: #e8f0fe;
+    --muted: #6b7fa3;
+    --green: #00e676;
+    --red: #ff4444;
+    --yellow: #ffd600;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(5,8,16,0.95);
+    backdrop-filter: blur(12px);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent3)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .logo span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .badge { font-family: 'Space Mono', monospace; font-size: 0.65rem; padding: 4px 10px; border-radius: 20px; background: rgba(0,245,196,0.1); color: var(--accent); border: 1px solid rgba(0,245,196,0.3); letter-spacing: 1px; }
+  .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; display: inline-block; margin-right: 6px; }
+  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,230,118,0.4)}50%{opacity:0.8;box-shadow:0 0 0 6px rgba(0,230,118,0)} }
+  .app { position: relative; z-index: 1; display: flex; height: calc(100vh - 61px); }
+  .sidebar { width: 260px; min-width: 260px; border-right: 1px solid var(--border); padding: 24px 16px; overflow-y: auto; background: rgba(12,17,32,0.6); }
+  .sidebar-section { margin-bottom: 28px; }
+  .sidebar-label { font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+  .filter-group { margin-bottom: 14px; }
+  .filter-label { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .filter-label span { color: var(--accent); font-family: 'Space Mono', monospace; font-size: 0.7rem; }
+  input[type=range] { width: 100%; -webkit-appearance: none; height: 3px; background: var(--border); border-radius: 2px; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 8px rgba(0,245,196,0.5); }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 0.7rem; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all 0.15s; font-family: 'Space Mono', monospace; }
+  .tag:hover, .tag.active { border-color: var(--accent); color: var(--accent); background: rgba(0,245,196,0.07); }
+  .scan-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent), #00c9a7); color: #050810; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.85rem; border: none; border-radius: 8px; cursor: pointer; letter-spacing: 0.5px; transition: opacity 0.2s, transform 0.1s; margin-top: 8px; }
+  .scan-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .scan-btn:active { transform: translateY(0); }
+  .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .main { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .stats-row { display: flex; gap: 12px; }
+  .stat-card { flex: 1; padding: 16px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; position: relative; overflow: hidden; }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); }
+  .stat-card:nth-child(2)::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .stat-card:nth-child(3)::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .stat-card:nth-child(4)::before { background: linear-gradient(90deg, var(--yellow), transparent); }
+  .stat-val { font-size: 1.6rem; font-weight: 800; margin-bottom: 2px; }
+  .stat-label { font-size: 0.72rem; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .section-title { font-size: 1rem; font-weight: 700; }
+  .sort-row { display: flex; gap: 8px; }
+  .sort-btn { font-size: 0.68rem; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: 'Space Mono', monospace; transition: all 0.15s; }
+  .sort-btn.active { border-color: var(--accent3); color: var(--accent3); background: rgba(124,109,250,0.08); }
+  .stock-table { width: 100%; border-collapse: collapse; }
+  .stock-table th { font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .stock-table td { padding: 14px 12px; border-bottom: 1px solid rgba(30,45,69,0.5); font-size: 0.85rem; transition: background 0.1s; }
+  .stock-table tr:hover td { background: rgba(0,245,196,0.03); cursor: pointer; }
+  .ticker { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 0.9rem; }
+  .company-name { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .price { font-family: 'Space Mono', monospace; font-weight: 700; }
+  .change-pos { color: var(--green); font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+  .change-neg { color: var(--red); font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+  .momentum-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .momentum-bar { height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--accent3), var(--accent)); transition: width 0.5s ease; min-width: 4px; }
+  .momentum-score { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--accent); }
+  .signal-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.65rem; font-family: 'Space Mono', monospace; font-weight: 700; letter-spacing: 0.5px; }
+  .signal-strong { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .signal-moderate { background: rgba(255,214,0,0.1); color: var(--yellow); border: 1px solid rgba(255,214,0,0.3); }
+  .signal-weak { background: rgba(255,68,68,0.1); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+  .analyze-btn { padding: 5px 12px; background: transparent; border: 1px solid var(--accent3); color: var(--accent3); border-radius: 4px; font-size: 0.7rem; font-family: 'Space Mono', monospace; cursor: pointer; transition: all 0.15s; }
+  .analyze-btn:hover { background: rgba(124,109,250,0.1); }
+  .ai-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .ai-panel-header { padding: 14px 20px; background: linear-gradient(90deg, rgba(124,109,250,0.1), transparent); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .ai-icon { width: 28px; height: 28px; background: linear-gradient(135deg, var(--accent3), #4c3fd1); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .ai-panel-title { font-weight: 700; font-size: 0.9rem; }
+  .ai-panel-sub { font-size: 0.7rem; color: var(--muted); font-family: 'Space Mono', monospace; margin-left: auto; }
+  .ai-panel-body { padding: 20px; }
+  .ai-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; color: var(--muted); text-align: center; gap: 10px; }
+  .ai-placeholder .big-icon { font-size: 2.5rem; opacity: 0.4; }
+  .ai-placeholder p { font-size: 0.8rem; max-width: 280px; line-height: 1.6; }
+  .ai-analysis { display: flex; flex-direction: column; gap: 14px; }
+  .ai-ticker-header { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .ai-ticker-big { font-size: 1.5rem; font-weight: 800; font-family: 'Space Mono', monospace; }
+  .ai-text { font-size: 0.82rem; line-height: 1.7; color: #b8c8e8; }
+  .ai-metrics { display: flex; gap: 10px; flex-wrap: wrap; }
+  .ai-metric { flex: 1; min-width: 100px; padding: 10px 14px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); }
+  .ai-metric-label { font-size: 0.62rem; color: var(--muted); font-family: 'Space Mono', monospace; margin-bottom: 4px; }
+  .ai-metric-val { font-size: 1rem; font-weight: 700; font-family: 'Space Mono', monospace; }
+  .typing-cursor { display: inline-block; width: 2px; height: 14px; background: var(--accent); animation: blink 0.8s infinite; vertical-align: middle; margin-left: 2px; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0} }
+  .loading-shimmer { background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 4px; height: 12px; margin-bottom: 8px; }
+  @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+  .disclaimer { font-size: 0.62rem; color: var(--muted); font-family: 'Space Mono', monospace; padding: 10px 20px; border-top: 1px solid var(--border); opacity: 0.7; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* SEARCH */
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 14px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .search-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 36px 8px 34px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    width: 220px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, width 0.3s;
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,245,196,0.08);
+    width: 280px;
+  }
+  .search-clear {
+    position: absolute;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: none;
+    padding: 0;
+  }
+  .search-clear:hover { color: var(--text); }
+  .no-results {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+  }
+  .search-highlight {
+    background: rgba(0,245,196,0.18);
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  /* SEARCH */
+  .search-wrap { position: relative; display: flex; align-items: center; }
+  .search-icon { position: absolute; left: 12px; font-size: 14px; color: var(--muted); pointer-events: none; }
+  .search-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 32px 8px 34px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    width: 220px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, width 0.3s;
+  }
+  .search-input::placeholder { color: var(--muted); }
+  .search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,245,196,0.08); width: 280px; }
+  .search-clear { position: absolute; right: 10px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; display: none; padding: 0; }
+  .search-clear:hover { color: var(--text); }
+  .no-results { text-align: center; padding: 32px; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 0.78rem; }
+  .search-highlight { background: rgba(0,245,196,0.18); color: var(--accent); border-radius: 2px; padding: 0 1px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    Momentum<span>AI</span>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="searchInput" type="text" placeholder="Search ticker or company..." oninput="handleSearch(this.value)" autocomplete="off"/>
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">✕</button>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">&#128269;</span>
+    <input class="search-input" id="searchInput" type="text" placeholder="Search ticker or company..." oninput="handleSearch(this.value)" autocomplete="off"/>
+    <button class="search-clear" id="searchClear" onclick="clearSearch()">&#x2715;</button>
+  </div>
+  <div class="header-right">
+    <div class="badge"><span class="live-dot"></span>LIVE</div>
+    <div class="badge">SWING TRADER PRO</div>
+  </div>
+</header>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Scan Filters</div>
+      <div class="filter-group">
+        <div class="filter-label">Min Momentum Score <span id="momentumVal">70</span></div>
+        <input type="range" min="0" max="100" value="70" oninput="document.getElementById('momentumVal').textContent=this.value"/>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Min Volume (M) <span id="volVal">5</span></div>
+        <input type="range" min="1" max="50" value="5" oninput="document.getElementById('volVal').textContent=this.value"/>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Max Price <span id="priceVal">$500</span></div>
+        <input type="range" min="10" max="1000" value="500" oninput="document.getElementById('priceVal').textContent='$'+this.value"/>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Sector</div>
+      <div class="tag-row">
+        <div class="tag active" onclick="toggleTag(this)">All</div>
+        <div class="tag" onclick="toggleTag(this)">Tech</div>
+        <div class="tag" onclick="toggleTag(this)">Energy</div>
+        <div class="tag" onclick="toggleTag(this)">Finance</div>
+        <div class="tag" onclick="toggleTag(this)">Health</div>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Signal Type</div>
+      <div class="tag-row">
+        <div class="tag active" onclick="toggleTag(this)">All</div>
+        <div class="tag" onclick="toggleTag(this)">Breakout</div>
+        <div class="tag" onclick="toggleTag(this)">Trend</div>
+        <div class="tag" onclick="toggleTag(this)">RSI</div>
+        <div class="tag" onclick="toggleTag(this)">MACD</div>
+      </div>
+    </div>
+    <button class="scan-btn" id="scanBtn" onclick="runScan()">⚡ Run AI Scan</button>
+  </div>
+
+  <div class="main">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" style="color:var(--accent)" id="statStocks">247</div>
+        <div class="stat-label">Stocks Scanned</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:var(--accent3)" id="statSignals">18</div>
+        <div class="stat-label">Strong Signals</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:var(--accent2)" id="statBreakouts">6</div>
+        <div class="stat-label">Breakouts Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:var(--yellow)" id="statAvgMom">83</div>
+        <div class="stat-label">Avg Momentum</div>
+      </div>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <div style="padding:16px 20px;" class="section-header">
+        <div class="section-title">Top Momentum Picks</div>
+        <div class="sort-row">
+          <button class="sort-btn active" onclick="setSort(this,'momentum')">Momentum</button>
+          <button class="sort-btn" onclick="setSort(this,'change')">% Change</button>
+          <button class="sort-btn" onclick="setSort(this,'volume')">Volume</button>
+        </div>
+      </div>
+      <table class="stock-table">
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Price</th>
+            <th>Change</th>
+            <th>Momentum</th>
+            <th>Volume</th>
+            <th>Signal</th>
+            <th>AI Analysis</th>
+          </tr>
+        </thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+    </div>
+
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <div class="ai-icon">🤖</div>
+        <div class="ai-panel-title">AI Deep Analysis</div>
+        <div class="ai-panel-sub">Powered by Claude</div>
+      </div>
+      <div class="ai-panel-body" id="aiPanelBody">
+        <div class="ai-placeholder">
+          <div class="big-icon">📊</div>
+          <p>Click <strong>Analyse</strong> on any stock to get an AI-powered momentum breakdown, risk assessment, and swing trade setup.</p>
+        </div>
+      </div>
+      <div class="disclaimer">⚠ Not financial advice. AI analysis is for informational purposes only. Always do your own research before trading.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const stocks = [
+  { ticker:'NVDA', name:'NVIDIA Corp', price:127.42, change:4.8, momentum:94, volume:'42.1M', signal:'strong', sector:'Tech' },
+  { ticker:'META', name:'Meta Platforms', price:589.30, change:3.2, momentum:88, volume:'18.7M', signal:'strong', sector:'Tech' },
+  { ticker:'SMCI', name:'Super Micro Computer', price:48.90, change:7.1, momentum:92, volume:'31.4M', signal:'strong', sector:'Tech' },
+  { ticker:'XOM',  name:'Exxon Mobil', price:114.55, change:1.8, momentum:75, volume:'12.2M', signal:'moderate', sector:'Energy' },
+  { ticker:'COIN', name:'Coinbase Global', price:238.70, change:5.5, momentum:85, volume:'8.9M', signal:'strong', sector:'Finance' },
+  { ticker:'PLTR', name:'Palantir Technologies', price:34.18, change:2.9, momentum:81, volume:'22.1M', signal:'moderate', sector:'Tech' },
+  { ticker:'AMD',  name:'Advanced Micro Devices', price:157.90, change:3.7, momentum:79, volume:'19.3M', signal:'moderate', sector:'Tech' },
+  { ticker:'HIMS', name:'Hims & Hers Health', price:24.65, change:-1.2, momentum:52, volume:'5.8M', signal:'weak', sector:'Health' },
+];
+
+let searchQuery = '';
+
+function handleSearch(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('searchClear').style.display = searchQuery ? 'block' : 'none';
+  renderStocks();
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  searchQuery = '';
+  document.getElementById('searchClear').style.display = 'none';
+  renderStocks();
+}
+
+function highlight(text, query) {
+  if (!query) return text;
+  const idx = text.toLowerCase().indexOf(query);
+  if (idx === -1) return text;
+  return text.slice(0, idx) + '<span class=\"search-highlight\">' + text.slice(idx, idx + query.length) + '</span>' + text.slice(idx + query.length);
+}
+
+function renderStocks() {
+  const tbody = document.getElementById('stockBody');
+  const filtered = searchQuery
+    ? stocks.filter(s => s.ticker.toLowerCase().includes(searchQuery) || s.name.toLowerCase().includes(searchQuery))
+    : stocks;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan=\"7\"><div class=\"no-results\">No stocks match &ldquo;' + searchQuery + '&rdquo;</div></td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => `
+    <tr>
+      <td>
+        <div class="ticker">${highlight(s.ticker, searchQuery)}</div>
+        <div class="company-name">${highlight(s.name, searchQuery)}</div>
+      </td>
+      <td class="price">$${s.price.toFixed(2)}</td>
+      <td class="${s.change>=0?'change-pos':'change-neg'}">${s.change>=0?'+':''}${s.change}%</td>
+      <td>
+        <div class="momentum-bar-wrap">
+          <div class="momentum-bar" style="width:${s.momentum*0.8}px"></div>
+          <span class="momentum-score">${s.momentum}</span>
+        </div>
+      </td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.78rem;color:var(--muted)">${s.volume}</td>
+      <td><span class="signal-badge signal-${s.signal}">${s.signal.toUpperCase()}</span></td>
+      <td><button class="analyze-btn" onclick="analyzeStock('${s.ticker}')">Analyse &#9658;</button></td>
+    </tr>
+  `).join('');
+}
+
+function toggleTag(el) { el.classList.toggle('active'); }
+
+function setSort(btn, key) {
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if(key==='momentum') stocks.sort((a,b)=>b.momentum-a.momentum);
+  if(key==='change')   stocks.sort((a,b)=>b.change-a.change);
+  if(key==='volume')   stocks.sort((a,b)=>parseFloat(b.volume)-parseFloat(a.volume));
+  renderStocks();
+}
+
+async function analyzeStock(ticker) {
+  const stock = stocks.find(s=>s.ticker===ticker);
+  const panel = document.getElementById('aiPanelBody');
+  panel.innerHTML = `
+    <div class="ai-analysis">
+      <div class="ai-ticker-header">
+        <div class="ai-ticker-big">${stock.ticker}</div>
+        <div>
+          <div style="font-size:0.8rem;color:var(--muted)">${stock.name}</div>
+          <div style="font-size:0.85rem;font-family:'Space Mono',monospace;color:${stock.change>=0?'var(--green)':'var(--red)'}">${stock.change>=0?'+':''}${stock.change}% today</div>
+        </div>
+        <span class="signal-badge signal-${stock.signal}" style="margin-left:auto">${stock.signal.toUpperCase()} SIGNAL</span>
+      </div>
+      <div class="ai-metrics">
+        <div class="ai-metric"><div class="ai-metric-label">MOMENTUM</div><div class="ai-metric-val" style="color:var(--accent)">${stock.momentum}/100</div></div>
+        <div class="ai-metric"><div class="ai-metric-label">PRICE</div><div class="ai-metric-val">$${stock.price.toFixed(2)}</div></div>
+        <div class="ai-metric"><div class="ai-metric-label">VOLUME</div><div class="ai-metric-val" style="color:var(--accent3)">${stock.volume}</div></div>
+        <div class="ai-metric"><div class="ai-metric-label">SECTOR</div><div class="ai-metric-val" style="font-size:0.8rem;color:var(--accent2)">${stock.sector}</div></div>
+      </div>
+      <div id="aiLoading">
+        <div class="loading-shimmer" style="width:100%"></div>
+        <div class="loading-shimmer" style="width:85%"></div>
+        <div class="loading-shimmer" style="width:90%"></div>
+        <div class="loading-shimmer" style="width:70%"></div>
+      </div>
+      <div id="aiTextOut" class="ai-text"></div>
+    </div>`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        messages:[{
+          role:"user",
+          content:`You are a sharp momentum trading analyst. Give a concise swing trade breakdown for ${stock.ticker} (${stock.name}).
+
+Data:
+- Price: $${stock.price}
+- Today's change: ${stock.change}%
+- Momentum score: ${stock.momentum}/100
+- Volume: ${stock.volume}
+- Signal: ${stock.signal}
+- Sector: ${stock.sector}
+
+Write 3 punchy paragraphs:
+1. Momentum assessment and likely catalyst
+2. Key price levels — entry zone, target, stop-loss
+3. Risk factors and trade invalidation signals
+
+End with a bold one-line trade thesis. Be specific and direct. No disclaimers.`
+        }]
+      })
+    });
+    const data = await res.json();
+    document.getElementById('aiLoading').style.display='none';
+    const text = data.content.map(i=>i.text||'').join('');
+    const out = document.getElementById('aiTextOut');
+    out.innerHTML='';
+    let i=0;
+    const cursor=document.createElement('span');
+    cursor.className='typing-cursor';
+    function type(){
+      if(i<text.length){
+        out.innerHTML=text.slice(0,i).replace(/\n/g,'<br>');
+        out.appendChild(cursor);
+        i+=3; setTimeout(type,12);
+      } else { out.innerHTML=text.replace(/\n/g,'<br>'); }
+    }
+    type();
+  } catch(e) {
+    document.getElementById('aiLoading').style.display='none';
+    document.getElementById('aiTextOut').innerHTML=`<span style="color:var(--red)">Analysis unavailable. Check your connection and try again.</span>`;
+  }
+}
+
+function runScan() {
+  const btn=document.getElementById('scanBtn');
+  btn.disabled=true; btn.textContent='⏳ Scanning markets...';
+  setTimeout(()=>{
+    stocks.sort(()=>Math.random()-0.5);
+    stocks.sort((a,b)=>b.momentum-a.momentum);
+    renderStocks();
+    document.getElementById('statStocks').textContent=Math.floor(Math.random()*100)+200;
+    document.getElementById('statSignals').textContent=Math.floor(Math.random()*10)+15;
+    document.getElementById('statBreakouts').textContent=Math.floor(Math.random()*5)+4;
+    document.getElementById('statAvgMom').textContent=Math.floor(Math.random()*10)+78;
+    btn.disabled=false; btn.textContent='⚡ Run AI Scan';
+  },1800);
+}
+
+renderStocks();
+</script>
+</body>
+</html>
